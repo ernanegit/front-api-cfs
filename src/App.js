@@ -1378,6 +1378,474 @@ const fetchAulas = async () => {
 };
 
 
+function MatriculaForm() {
+  const [formData, setFormData] = useState({
+    nome_completo: '',
+    cpf: '',
+    rg: '',
+    data_nascimento: '',
+    sexo: 'M',
+    telefone: '',
+    email: '',
+    endereco: '',
+    cidade: '',
+    estado: '',
+    cep: '',
+    escola_origem: '',
+    ano_conclusao_ensino_medio: '',
+    turma_preferida: '',
+    observacoes: ''
+  });
+  
+  const [turmas, setTurmas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    // Carregar turmas disponíveis
+    const fetchTurmas = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/turmas/`);
+        const data = await response.json();
+        setTurmas(data.results?.filter(turma => turma.ativa) || []);
+      } catch (error) {
+        console.error('Erro ao carregar turmas:', error);
+      }
+    };
+
+    fetchTurmas();
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Limpar erro do campo quando usuário começar a digitar
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.nome_completo.trim()) {
+      newErrors.nome_completo = 'Nome completo é obrigatório';
+    }
+
+    if (!formData.cpf.trim()) {
+      newErrors.cpf = 'CPF é obrigatório';
+    }
+
+    if (!formData.data_nascimento) {
+      newErrors.data_nascimento = 'Data de nascimento é obrigatória';
+    }
+
+    if (!formData.telefone.trim()) {
+      newErrors.telefone = 'Telefone é obrigatório';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'E-mail é obrigatório';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'E-mail inválido';
+    }
+
+    if (!formData.escola_origem.trim()) {
+      newErrors.escola_origem = 'Escola de origem é obrigatória';
+    }
+
+    if (!formData.turma_preferida) {
+      newErrors.turma_preferida = 'Selecione uma turma';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/alunos/matricula/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          turma: formData.turma_preferida,
+          ativo: true
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao realizar matrícula');
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao realizar matrícula: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Matrícula Enviada!</h2>
+          <p className="text-gray-600 mb-6">
+            Sua solicitação de matrícula foi enviada com sucesso. 
+            Em breve entraremos em contato para confirmar sua vaga.
+          </p>
+          <button
+            onClick={() => {
+              setSubmitted(false);
+              setFormData({
+                nome_completo: '',
+                cpf: '',
+                rg: '',
+                data_nascimento: '',
+                sexo: 'M',
+                telefone: '',
+                email: '',
+                endereco: '',
+                cidade: '',
+                estado: '',
+                cep: '',
+                escola_origem: '',
+                ano_conclusao_ensino_medio: '',
+                turma_preferida: '',
+                observacoes: ''
+              });
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-md transition duration-200"
+          >
+            Nova Matrícula
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-lg shadow-xl p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Matrícula Cursinho CFS 2026</h1>
+            <p className="text-gray-600">Preencha os dados abaixo para se matricular</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Dados Pessoais */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Dados Pessoais</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome Completo *
+                  </label>
+                  <input
+                    type="text"
+                    name="nome_completo"
+                    value={formData.nome_completo}
+                    onChange={handleInputChange}
+                    className={`w-full py-2 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.nome_completo ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Seu nome completo"
+                  />
+                  {errors.nome_completo && (
+                    <p className="text-red-500 text-xs mt-1">{errors.nome_completo}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CPF *</label>
+                  <input
+                    type="text"
+                    name="cpf"
+                    value={formData.cpf}
+                    onChange={handleInputChange}
+                    className={`w-full py-2 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.cpf ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="000.000.000-00"
+                  />
+                  {errors.cpf && <p className="text-red-500 text-xs mt-1">{errors.cpf}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">RG</label>
+                  <input
+                    type="text"
+                    name="rg"
+                    value={formData.rg}
+                    onChange={handleInputChange}
+                    className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="00.000.000-0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Data de Nascimento *
+                  </label>
+                  <input
+                    type="date"
+                    name="data_nascimento"
+                    value={formData.data_nascimento}
+                    onChange={handleInputChange}
+                    className={`w-full py-2 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.data_nascimento ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.data_nascimento && (
+                    <p className="text-red-500 text-xs mt-1">{errors.data_nascimento}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
+                  <select
+                    name="sexo"
+                    value={formData.sexo}
+                    onChange={handleInputChange}
+                    className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Contato */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Contato</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone *
+                  </label>
+                  <input
+                    type="text"
+                    name="telefone"
+                    value={formData.telefone}
+                    onChange={handleInputChange}
+                    className={`w-full py-2 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.telefone ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="(00) 00000-0000"
+                  />
+                  {errors.telefone && (
+                    <p className="text-red-500 text-xs mt-1">{errors.telefone}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={`w-full py-2 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.email ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="seu@email.com"
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                <input
+                  type="text"
+                  name="endereco"
+                  value={formData.endereco}
+                  onChange={handleInputChange}
+                  className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Rua, número, bairro"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                  <input
+                    type="text"
+                    name="cidade"
+                    value={formData.cidade}
+                    onChange={handleInputChange}
+                    className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Sua cidade"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <input
+                    type="text"
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleInputChange}
+                    className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="CE"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                  <input
+                    type="text"
+                    name="cep"
+                    value={formData.cep}
+                    onChange={handleInputChange}
+                    className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="00000-000"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dados Acadêmicos */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Dados Acadêmicos</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Escola de Origem *
+                  </label>
+                  <input
+                    type="text"
+                    name="escola_origem"
+                    value={formData.escola_origem}
+                    onChange={handleInputChange}
+                    className={`w-full py-2 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.escola_origem ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Nome da escola onde estudou"
+                  />
+                  {errors.escola_origem && (
+                    <p className="text-red-500 text-xs mt-1">{errors.escola_origem}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ano de Conclusão do Ensino Médio
+                  </label>
+                  <input
+                    type="number"
+                    name="ano_conclusao_ensino_medio"
+                    value={formData.ano_conclusao_ensino_medio}
+                    onChange={handleInputChange}
+                    className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="2024"
+                    min="2020"
+                    max="2026"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Turma Preferida *
+                  </label>
+                  <select
+                    name="turma_preferida"
+                    value={formData.turma_preferida}
+                    onChange={handleInputChange}
+                    className={`w-full py-2 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.turma_preferida ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">Selecione uma turma</option>
+                    {turmas.map(turma => (
+                      <option key={turma.id} value={turma.id}>
+                        {turma.nome} - {turma.periodo} ({turma.vagas_ocupadas}/{turma.vagas} vagas)
+                      </option>
+                    ))}
+                  </select>
+                  {errors.turma_preferida && (
+                    <p className="text-red-500 text-xs mt-1">{errors.turma_preferida}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Observações */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Observações (Opcional)
+              </label>
+              <textarea
+                name="observacoes"
+                value={formData.observacoes}
+                onChange={handleInputChange}
+                rows="4"
+                className="w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Conte-nos um pouco sobre seus objetivos, dificuldades ou qualquer informação adicional..."
+              ></textarea>
+            </div>
+
+            {/* Botão de Envio */}
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 px-6 rounded-md font-medium transition duration-200 flex items-center justify-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  'Enviar Matrícula'
+                )}
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center">
+              * Campos obrigatórios. Ao enviar, você concorda com nossos termos de uso.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
 export default function App() {
   const [apiInfo, setApiInfo] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1535,27 +2003,29 @@ export default function App() {
   };
 
   const renderContent = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard apiInfo={apiInfo} />;
-      case 'alunos':
-        return <Alunos alunos={alunosList} loading={dataLoading} onViewAluno={handleAlunoDetail} />;
-      case 'alunoDetalhe':
-        return <AlunoDetalhe alunoId={selectedAlunoId} alunos={alunosList} onBack={goBack} />;
-      case 'turmas':
-        return <Turmas turmas={turmasList} loading={dataLoading} />;
-      case 'materias':
-        return <Materias materias={materiasList} loading={dataLoading} />;
-      case 'aulas':
-        return <Aulas aulas={aulasList} loading={dataLoading} />;
-      case 'notas':
-        return <Notas />;
-      case 'frequencias':
-        return <Frequencias />;
-      default:
-        return <Dashboard apiInfo={apiInfo} />;
-    }
-  };
+  switch (currentPage) {
+    case 'dashboard':
+      return <Dashboard apiInfo={apiInfo} />;
+    case 'alunos':
+      return <Alunos alunos={alunosList} loading={dataLoading} onViewAluno={handleAlunoDetail} />;
+    case 'alunoDetalhe':
+      return <AlunoDetalhe alunoId={selectedAlunoId} alunos={alunosList} onBack={goBack} />;
+    case 'turmas':
+      return <Turmas turmas={turmasList} loading={dataLoading} />;
+    case 'materias':
+      return <Materias materias={materiasList} loading={dataLoading} />;
+    case 'aulas':
+      return <Aulas aulas={aulasList} loading={dataLoading} />;
+    case 'notas':
+      return <Notas />;
+    case 'frequencias':
+      return <Frequencias />;
+    case 'matricula':
+      return <MatriculaForm />;
+    default:
+      return <Dashboard apiInfo={apiInfo} />;
+  }
+};
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -1661,15 +2131,28 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white shadow-sm z-10">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-semibold text-gray-800">Cursinho CFS 2026</h1>
-            <p className="text-sm text-gray-600">Sistema de Gestão Acadêmica</p>
-          </div>
-        </header>
+     {/* Main Content */}
+<div className="flex-1 flex flex-col overflow-hidden">
+ {/* Header */}
+ <header className="bg-white shadow-sm z-10">
+   <div className="px-6 py-4 flex justify-between items-center">
+     <div>
+       <h1 className="text-2xl font-semibold text-gray-800">Cursinho CFS 2026</h1>
+       <p className="text-sm text-gray-600">Sistema de Gestão Acadêmica</p>
+     </div>
+     <div className="flex space-x-3">
+       <button 
+         onClick={() => setCurrentPage('matricula')}
+         className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md flex items-center"
+       >
+         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+         </svg>
+         Matrícula Online
+       </button>
+     </div>
+   </div>
+ </header>
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
