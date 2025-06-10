@@ -57,6 +57,207 @@ function Materias({ materias = [], loading }) {
   );
 }
 
+function CalendarioAulas({ aulas }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  // Obter primeiro e último dia do mês atual
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const firstDayOfWeek = firstDayOfMonth.getDay();
+
+  // Gerar dias do calendário
+  const daysInMonth = lastDayOfMonth.getDate();
+  const days = [];
+
+  // Dias vazios do início
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    days.push(null);
+  }
+
+  // Dias do mês
+  for (let day = 1; day <= daysInMonth; day++) {
+    days.push(day);
+  }
+
+  // Função para obter aulas de um dia específico
+  const getAulasForDay = (day) => {
+    if (!day) return [];
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return aulas.filter(aula => {
+      if (!aula.data_hora_inicio) return false;
+      const aulaDate = new Date(aula.data_hora_inicio).toISOString().split('T')[0];
+      return aulaDate === dateStr;
+    });
+  };
+
+  // Navegar entre meses
+  const previousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  return (
+    <div className="p-6">
+      {/* Header do calendário */}
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-semibold text-gray-800">
+          {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+        </h3>
+        <div className="flex space-x-2">
+          <button
+            onClick={previousMonth}
+            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={nextMonth}
+            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Grid do calendário */}
+      <div className="grid grid-cols-7 gap-1 mb-4">
+        {/* Cabeçalho dos dias da semana */}
+        {weekDays.map(day => (
+          <div key={day} className="p-3 text-center text-sm font-medium text-gray-500 bg-gray-50">
+            {day}
+          </div>
+        ))}
+
+        {/* Células dos dias */}
+        {days.map((day, index) => {
+          const aulasDay = getAulasForDay(day);
+          const isToday = day && 
+            currentDate.getFullYear() === new Date().getFullYear() &&
+            currentDate.getMonth() === new Date().getMonth() &&
+            day === new Date().getDate();
+
+          return (
+            <div
+              key={index}
+              className={`min-h-[120px] p-2 border border-gray-200 ${
+                day ? 'bg-white hover:bg-gray-50 cursor-pointer' : 'bg-gray-50'
+              } ${isToday ? 'bg-blue-50 border-blue-200' : ''}`}
+              onClick={() => day && setSelectedDate(day)}
+            >
+              {day && (
+                <>
+                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>
+                    {day}
+                  </div>
+                  <div className="space-y-1">
+                    {aulasDay.slice(0, 2).map((aula, aulaIndex) => (
+                      <div
+                        key={aulaIndex}
+                        className="text-xs p-1 rounded truncate"
+                        style={{ 
+                          backgroundColor: `${aula.materia_cor || '#3B82F6'}20`,
+                          color: aula.materia_cor || '#3B82F6'
+                        }}
+                        title={`${aula.titulo} - ${aula.materia_nome}`}
+                      >
+                        {new Date(aula.data_hora_inicio).toLocaleTimeString('pt-BR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })} {aula.titulo}
+                      </div>
+                    ))}
+                    {aulasDay.length > 2 && (
+                      <div className="text-xs text-gray-500 text-center">
+                        +{aulasDay.length - 2} mais
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal de detalhes do dia selecionado */}
+      {selectedDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-lg font-semibold">
+                Aulas do dia {selectedDate} de {monthNames[currentDate.getMonth()]}
+              </h4>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-3">
+              {getAulasForDay(selectedDate).length > 0 ? (
+                getAulasForDay(selectedDate).map((aula, index) => (
+                  <div key={index} className="border rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <h5 className="font-medium text-gray-800">{aula.titulo}</h5>
+                      <span
+                        className="px-2 py-1 text-xs rounded-full"
+                        style={{
+                          backgroundColor: `${aula.materia_cor || '#3B82F6'}20`,
+                          color: aula.materia_cor || '#3B82F6'
+                        }}
+                      >
+                        {aula.materia_nome}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>
+                        <strong>Horário:</strong>{' '}
+                        {new Date(aula.data_hora_inicio).toLocaleTimeString('pt-BR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })} - {' '}
+                        {new Date(aula.data_hora_fim).toLocaleTimeString('pt-BR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </p>
+                      {aula.professor_nome && <p><strong>Professor:</strong> {aula.professor_nome}</p>}
+                      {aula.turma_nome && <p><strong>Turma:</strong> {aula.turma_nome}</p>}
+                      {aula.sala && <p><strong>Sala:</strong> {aula.sala}</p>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">
+                  Nenhuma aula agendada para este dia
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Aulas({ aulas = [], loading }) {
   const [currentView, setCurrentView] = useState('lista'); // 'lista' ou 'calendario'
   
@@ -189,22 +390,13 @@ function Aulas({ aulas = [], loading }) {
               </table>
             </div>
           ) : (
-            <div className="p-6 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-500 mb-4">
-                <CalendarIcon />
-              </div>
-              <h3 className="text-lg font-medium text-gray-800 mb-2">Visualização de Calendário</h3>
-              <p className="text-gray-600 max-w-md mx-auto">
-                A visualização de calendário será implementada em breve!
-              </p>
-            </div>
+            <CalendarioAulas aulas={aulas} />
           )}
         </div>
       )}
     </div>
   );
 }
-
 
 function Frequencias() {
   const [frequencias, setFrequencias] = useState([]);
