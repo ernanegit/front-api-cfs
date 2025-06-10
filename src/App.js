@@ -1377,6 +1377,7 @@ const fetchAulas = async () => {
   }
 };
 
+
 export default function App() {
   const [apiInfo, setApiInfo] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1454,6 +1455,35 @@ export default function App() {
         });
     }
   }, [currentPage, alunosList.length, turmasList.length, materiasList.length, aulasList.length]);
+
+  // Função de logout
+  const handleLogout = () => {
+    const confirmLogout = window.confirm('Tem certeza que deseja sair do sistema?');
+    
+    if (confirmLogout) {
+      // Limpar dados do localStorage se houver
+      try {
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userData');
+      } catch (error) {
+        console.log('Erro ao limpar localStorage:', error);
+      }
+      
+      // Resetar estados
+      setApiInfo(null);
+      setCurrentPage('dashboard');
+      setAlunosList([]);
+      setTurmasList([]);
+      setMateriasList([]);
+      setAulasList([]);
+      setSelectedAlunoId(null);
+      setError(null);
+      setLoading(true);
+      
+      // Recarregar a página
+      window.location.reload();
+    }
+  };
 
   if (loading) {
     return (
@@ -1622,6 +1652,7 @@ export default function App() {
         {/* Footer */}
         <div className="p-4 border-t border-blue-700">
           <button
+            onClick={handleLogout}
             className="flex items-center text-white hover:bg-blue-700 rounded-md p-2 transition-colors w-full text-left"
           >
             <LogoutIcon />
@@ -1648,6 +1679,9 @@ export default function App() {
     </div>
   );
 }
+
+
+
 
 // Icon Components
 function HomeIcon() {
